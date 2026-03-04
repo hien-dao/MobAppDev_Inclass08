@@ -1,7 +1,12 @@
+import 'dart:core';
+
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
+
 import '../lib/database_helper.dart';
+import '../models/card.dart';
+import '../models/folder.dart';
 
 class FolderRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
@@ -13,9 +18,9 @@ class FolderRepository {
   }
 
   // READ - Get all folders
-  Future> getAllFolders() async {
+  Future<List<Folder>> getAllFolders() async {
     final db = await _dbHelper.database;
-    final List> maps = await db.query('folders');
+    final List<Map<String, dynamic>> maps = await db.query('folders');
     
     return List.generate(maps.length, (i) {
       return Folder.fromMap(maps[i]);
@@ -23,9 +28,9 @@ class FolderRepository {
   }
 
   // READ - Get a single folder by ID
-  Future getFolderById(int id) async {
+  Future<Folder?> getFolderById(int id) async {
     final db = await _dbHelper.database;
-    final List> maps = await db.query(
+    final List<Map<String, dynamic>> maps = await db.query(
       'folders',
       where: 'id = ?',
       whereArgs: [id],
