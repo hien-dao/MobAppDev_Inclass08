@@ -3,103 +3,82 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
 
-  static const _databaseName =
-  "MyDatabase.db"; static
-  const _databaseVersion = 1;
+  DatabaseHelper._init();
 
-  static const table =
-  'my_table';
+  Future get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('card_organizer.db');
+    return _database!;
+  }
 
-  static const columnId =
-  '_id'; static
-  const columnName = 'name';
-  static const columnAge =
-  'age';
-
-  late Database _db;
-
-  // This opens the database (and creates it if it doesn't exist)
-  Future<void> init() async {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, _databaseName);
-    _db = await openDatabase(
+  Future _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+    
+    return await openDatabase(
       path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
+      version: 1,
+      onCreate: _createDB,
     );
   }
 
-  // SQL code to create the database table
-  Future _onCreate(Database db, int version) async {
-    await db.execute(''' CREATE TABLE $table (
-      $columnId INTEGER PRIMARY KEY,
-      $columnName TEXT NOT NULL,
-      $columnAge INTEGER NOT NULL ) '''
-    );
+  Future _createDB(Database db, int version) async {
+    // Create Folders table
+    await db.execute('''
+      CREATE TABLE folders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_name TEXT NOT NULL,
+        timestamp TEXT NOT NULL
+      )
+    ''');
+
+    // Create Cards table with foreign key
+    await db.execute('''
+      CREATE TABLE cards(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_name TEXT NOT NULL,
+        suit TEXT NOT NULL,
+        image_url TEXT,
+        folder_id INTEGER,
+        FOREIGN KEY (folder_id) REFERENCES folders (id)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Prepopulate folders
+    await _prepopulateFolders(db);
+    
+    // Prepopulate cards
+    await _prepopulateCards(db);
   }
 
-  // Helper methods
-
-  // Inserts a row in the database where each key in the Map is a column name
-  // and the value is the column value. The return value is the id of the
-  // inserted row.
-  Future<int> insert(Map<String, dynamic> row) async {
-    return await _db.insert(table, row); 
-  }
-
-  // All of the rows are returned as a list of maps, where each map is
-  // a key-value list of columns.
-  Future<List<Map<String, dynamic>>> queryAllRows() async {
-    return await _db.query(table);
-  }
-
-  // All of the methods (insert, query, update, delete) can also be done using
-  // raw SQL commands. This method uses a raw query to give the row count.
-  Future<int> queryRowCount() async {
-    final results = await _db.rawQuery('SELECT COUNT(*) FROM $table');
-    return Sqflite.firstIntValue(results) ?? 0;
-  }
-
-  // We are assuming here that the id column in the map is set. The other
-  // column values will be used to update the row.
-  Future<int> update(Map<String, dynamic> row) async {
-    int id = row[columnId];
-    return await _db.update(
-      table,
-      row,
-      where: '$columnId = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // Deletes the row specified by the id. The number of affected rows is
-  // returned. This should be 1 as long as the row exists.
-  Future<int> delete(int id) async {
-    return await _db.delete(
-      table,
-      where: '$columnId = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // Search for a record by ID
-  Future<int> searchById(int id) async {
-    final results = await _db.query(
-      table,
-      where: '$columnId = ?',
-      whereArgs: [id],
-    );
-    if (results.isNotEmpty) {
-      return results.first[columnId] as int;
-    } else {
-      return -1; // Return -1 if not found
+  Future _prepopulateFolders(Database db) async {
+    final folders = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+    for (int i = 0; i < folders.length; i++) {
+      await db.insert('folders', {
+        'folder_name': folders[i],
+        'timestamp': DateTime.now().toIso8601String(),
+      });
     }
   }
 
-  // Delete table
-  Future<void> deleteTable() async {
-    await _db.execute('DROP TABLE IF EXISTS $table');
-    await _onCreate(_db, _databaseVersion); // Recreate the table
+  Future _prepopulateCards(Database db) async {
+    final suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+    final cards = ['Ace', '2', '3', '4', '5', '6', '7', 
+                   '8', '9', '10', 'Jack', 'Queen', 'King'];
+    
+    for (int folderId = 1; folderId <= suits.length; folderId++) {
+      for (var card in cards) {
+        await db.insert('cards', {
+          'card_name': card,
+          'suit': suits[folderId - 1],
+          'image_url': 'assets/cards/${suits[folderId - 1].toLowerCase()}_$card.png',
+          'folder_id': folderId,
+        });
+      }
+    }
   }
 }
