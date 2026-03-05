@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../database_helper.dart';
+import '../lib/database_helper.dart';
 import '../models/card.dart';
 import '../models/folder.dart';
 
