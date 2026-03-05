@@ -1,6 +1,5 @@
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -17,16 +16,19 @@ class DatabaseHelper {
   Future _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    
+
     return await openDatabase(
       path,
       version: 1,
+      onConfigure: (db) async {
+        // IMPORTANT: required so ON DELETE CASCADE actually works
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _createDB,
     );
   }
 
   Future _createDB(Database db, int version) async {
-    // Create Folders table
     await db.execute('''
       CREATE TABLE folders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +37,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create Cards table with foreign key
     await db.execute('''
       CREATE TABLE cards(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,10 +49,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Prepopulate folders
     await _prepopulateFolders(db);
-    
-    // Prepopulate cards
     await _prepopulateCards(db);
   }
 
@@ -67,15 +65,17 @@ class DatabaseHelper {
 
   Future _prepopulateCards(Database db) async {
     final suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
-    final cards = ['Ace', '2', '3', '4', '5', '6', '7', 
-                   '8', '9', '10', 'Jack', 'Queen', 'King'];
-    
+    final cards = [
+      'Ace','2','3','4','5','6','7','8','9','10','Jack','Queen','King'
+    ];
+
     for (int folderId = 1; folderId <= suits.length; folderId++) {
+      final suit = suits[folderId - 1];
       for (var card in cards) {
         await db.insert('cards', {
           'card_name': card,
-          'suit': suits[folderId - 1],
-          'image_url': 'assets/cards/${suits[folderId - 1].toLowerCase()}_$card.png',
+          'suit': suit,
+          'image_url': null, // <-- not using images yet
           'folder_id': folderId,
         });
       }

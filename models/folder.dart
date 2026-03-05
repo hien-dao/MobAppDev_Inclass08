@@ -10,7 +10,7 @@ class Folder {
   });
 
   // Convert Folder object to Map for database operations
-  Map toMap() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'folder_name': folderName,
