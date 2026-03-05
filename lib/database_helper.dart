@@ -68,14 +68,20 @@ class DatabaseHelper {
     final cards = [
       'Ace','2','3','4','5','6','7','8','9','10','Jack','Queen','King'
     ];
+    final suits_short = ['H', 'D', 'C', 'S'];
+    final cards_short = [
+      'A','2','3','4','5','6','7','8','9','10','J','Q','K'
+    ];
 
     for (int folderId = 1; folderId <= suits.length; folderId++) {
       final suit = suits[folderId - 1];
+      final suit_short = suits_short[folderId - 1];
       for (var card in cards) {
+        final card_short = cards_short[cards.indexOf(card)];
         await db.insert('cards', {
           'card_name': card,
           'suit': suit,
-          'image_url': null, // <-- not using images yet
+          'image_url': 'https://deckofcardsapi.com/static/img/$card_short$suit_short.png',
           'folder_id': folderId,
         });
       }
