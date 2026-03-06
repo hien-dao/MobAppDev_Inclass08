@@ -77,7 +77,7 @@ class CardRepository {
   }
 
   // Get card count for a specific folder
-  Future getCardCountByFolder(int folderId) async {
+  Future<int> getCardCountByFolder(int folderId) async {
     final db = await _dbHelper.database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM cards WHERE folder_id = ?',
@@ -85,6 +85,7 @@ class CardRepository {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
+
 
   // Move a card to a different folder
   Future moveCardToFolder(int cardId, int newFolderId) async {
